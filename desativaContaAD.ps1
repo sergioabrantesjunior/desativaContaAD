@@ -19,11 +19,11 @@
 # Variáveis
 #
 
-# Lista de contas para desabilitar. Um por linha e no formato: "nome.sobrenome" sem @DOMINIO
+# Lista de contas para desabilitar. Um por linha e no formato: "nome.sobrenome" sem @XXXXX.XXXXx
 $listaDeContas = Get-Content -Path C:\Temp\scripts\listContasZimbra.txt
 
 # Caminho completo para a nova OU
-$novaOU = OU=Contas Desabilitadas,OU=DOMINIO,DC=DOMINIO,DC=local
+$novaOU = "OU=Contas Desabilitadas,OU=XXXXX,DC=XXXX,DC=local"
 
 
 #
@@ -36,31 +36,36 @@ cd C:\Temp\scripts ; cls ; $ErrorActionPreference = 'SilentlyContinue'
 Import-Module ActiveDirectory
 
 
+function desativaConta {
+
 # Desabilita contas
 
 # Desativa contas presentes na lista
 foreach ($conta in $listaDeContas) {
     Disable-ADAccount -Identity $conta
     Write-Host "Conta $conta - desativada."
-   
+}
+
 }
 
 
-# Muda contas de OU para "OU=Contas Desabilitadas,OU=DOMINIO,DC=DOMINIO,DC=local"
+function mudaOu {
 
+# Muda contas de OU para "OU=Contas Desabilitadas,OU=Cassol,DC=cassol,DC=local"
  foreach ($conta in $listaDeContas) {
 
     # Retrieve DN of User.
-    $UserDN = (Get-ADUser -Identity $listaDeContas).distinguishedName
+    $UserDN = (Get-ADUser -Identity $conta).distinguishedName
     # Move user to target OU. 
     Move-ADObject -Identity $UserDN -TargetPath $novaOU
-    Write-Host "Conta $listaDeContas - Movida de OU."
+    Write-Host "Conta $conta - Movida de OU."
+}
 
 }
 
 
+function removeGrupos {
 # Remove todos os grupos que o usuário faz parte
-
 ForEach ($conta in $listaDeContas){
 
    $GROUPS = (Get-ADPrincipalGroupMembership -server ad0001 -Identity $conta).DistinguishedName
@@ -70,3 +75,11 @@ ForEach ($conta in $listaDeContas){
         "Conta $conta - Removida dos grupos"
     }
 }
+
+}
+
+
+# Chama funções
+desativaConta
+mudaOu
+removeGrupos
